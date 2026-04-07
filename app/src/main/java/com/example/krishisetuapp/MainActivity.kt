@@ -329,7 +329,7 @@ fun WelcomeScreen(navController: NavHostController) {
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f))
                     ) {
                         Text(
-                            "Turn off mobile data, turn on Wi-Fi, and connect to 'KrishiSetu-Setup' before verification.",
+                            "Connect to 'KrishiSetu-Setup' on Wi-Fi. Keep mobile data on as well if you want live weather in the report screen.",
                             modifier = Modifier.padding(18.dp),
                             color = Color(0xFFF4F6EE),
                             lineHeight = 22.sp

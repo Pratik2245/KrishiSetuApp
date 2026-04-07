@@ -19,12 +19,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // ✅ ADD THIS FOR WEATHER API
         buildConfigField(
             "String",
             "OPEN_WEATHER_API_KEY",
-            "\"${project.properties["OPEN_WEATHER_API_KEY"]}\""
+            "\"${project.findProperty("OPEN_WEATHER_API_KEY") as String? ?: ""}\""
         )
+
     }
 
     // ✅ VERY IMPORTANT

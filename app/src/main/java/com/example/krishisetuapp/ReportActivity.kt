@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,9 +88,11 @@ fun ReportScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val weatherHelper = remember { WeatherApiHelper() }
 
     var isLoading by remember { mutableStateOf(false) }
     var weatherSummary by remember { mutableStateOf<WeatherSnapshot?>(null) }
+    var weatherGuidance by remember { mutableStateOf<WeatherFarmGuidance?>(null) }
     var soilRecord by remember { mutableStateOf<LatestSoilRecord?>(null) }
     var recommendationBundle by remember { mutableStateOf<CropRecommendationBundle?>(null) }
     var statusMessage by remember { mutableStateOf("Fetch the latest local weather and field guidance before generating the report.") }
@@ -118,33 +121,48 @@ fun ReportScreen() {
                 isLoading = true
                 statusMessage = "Collecting forecast and latest soil analysis..."
                 val latestSoilRecord = fetchLatestSoilRecord()
-                val weather = withContext(Dispatchers.IO) {
-                    WeatherApiHelper().fetchForecastSummary(
+                val weatherResult = withContext(Dispatchers.IO) {
+                    weatherHelper.fetchForecastSummary(
+                        context = context,
                         latitude = lat,
                         longitude = lng,
-                        apiKey = BuildConfig.OPEN_WEATHER_API_KEY
+                        openWeatherApiKey = BuildConfig.OPEN_WEATHER_API_KEY
                     )
                 }
+                val weather = weatherResult.snapshot
+                val guidance = weather?.let { weatherHelper.buildFarmGuidance(it) }
 
                 soilRecord = latestSoilRecord
                 weatherSummary = weather
+                weatherGuidance = guidance
                 recommendationBundle = CropRecommendationEngine.build(
-                    predictedCrops = latestSoilRecord?.cropsList?.mapIndexed { index, crop ->
-                        crop to (1f - index * 0.12f).coerceAtLeast(0.5f)
+                    predictedCrops = when {
+                        !latestSoilRecord?.cropsList.isNullOrEmpty() -> latestSoilRecord?.cropsList?.mapIndexed { index, crop ->
+                            crop to (1f - index * 0.12f).coerceAtLeast(0.5f)
+                        }
+                        guidance != null -> guidance.suitedCrops.mapIndexed { index, crop ->
+                            crop to (0.92f - index * 0.12f).coerceAtLeast(0.55f)
+                        }
+                        else -> null
                     },
                     ph = latestSoilRecord?.phValue,
                     temperature = latestSoilRecord?.temperature,
                     moisture = latestSoilRecord?.moisture,
                     weather = weather
                 )
-                statusMessage = if (latestSoilRecord == null) {
-                    "Weather loaded, but no saved soil record was found."
-                } else {
-                    "Guidance updated using the latest field record and 48-hour forecast."
+                statusMessage = when {
+                    weatherResult.issueMessage != null -> weatherResult.issueMessage
+                    weather == null -> "Weather could not be loaded right now."
+                    latestSoilRecord == null -> "Weather loaded, but no saved soil record was found."
+                    else -> "Guidance updated using the latest field record and 48-hour forecast."
                 }
                 isLoading = false
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        loadInsights()
     }
 
     fun generatePdf() {
@@ -290,6 +308,7 @@ fun ReportScreen() {
                 }
 
                 WeatherSummaryCard(weatherSummary)
+                WeatherGuidanceCard(weatherGuidance)
                 SoilOverviewCard(soilRecord)
                 RecommendationSummaryCard(recommendationBundle)
             }
@@ -310,17 +329,55 @@ private fun WeatherSummaryCard(weather: WeatherSnapshot?) {
                 Text("No weather snapshot loaded yet.", color = Color(0xFF5D6F62))
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    WeatherMetric("Condition", weather.shortSummary)
+                    WeatherMetric("Condition", weather.conditionLabel)
                     WeatherMetric("Temp", "${weather.temperatureC.roundToInt()}°C")
                     WeatherMetric("Humidity", "${weather.humidityPercent.roundToInt()}%")
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     WeatherMetric("Rain", "${weather.totalRainMmNext48h.roundToInt()} mm")
-                    WeatherMetric("Wind", "${weather.peakWindSpeed.roundToInt()} m/s")
-                    WeatherMetric("Risk", if (weather.rainExpectedSoon) "Wet spell" else "Stable")
+                    WeatherMetric("Rain Chance", "${weather.maxPrecipitationProbability}%")
+                    WeatherMetric("Wind", "${weather.peakWindSpeedKmh.roundToInt()} km/h")
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    WeatherMetric("24h Range", "${weather.minTempCNext24h.roundToInt()}-${weather.maxTempCNext24h.roundToInt()}°C")
+                    WeatherMetric("Risk", weather.riskLevel)
+                    WeatherMetric("Window", if (weather.rainExpectedSoon) "Wet" else "Stable")
+                }
+                Text(weather.conditionDescription, color = Color(0xFF506357), fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherGuidanceCard(guidance: WeatherFarmGuidance?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF23432A))
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Weather-Based Crop Guidance", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            if (guidance == null) {
+                Text("Refresh the weather to generate field-specific crop guidance.", color = Color(0xFFD7E7D9))
+            } else {
+                Text(guidance.headline, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                Text("${guidance.fieldWindow} • ${guidance.summary}", color = Color(0xFFD7E7D9), fontSize = 13.sp)
+                GuidanceLine("Best fit crops", guidance.suitedCrops.joinToString(", "))
+                GuidanceLine("Use caution with", guidance.cautionCrops.joinToString(", "))
+                guidance.fieldActions.forEachIndexed { index, item ->
+                    Text("${index + 1}. $item", color = Color(0xFFF3F7F1), fontSize = 13.sp)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GuidanceLine(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, color = Color(0xFFB6CBB8), fontSize = 12.sp)
+        Text(value, color = Color.White, fontWeight = FontWeight.SemiBold)
     }
 }
 
