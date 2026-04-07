@@ -12,14 +12,41 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -27,13 +54,26 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
+
+private data class LatestSoilRecord(
+    val predictedN: Float,
+    val predictedP: Float,
+    val predictedK: Float,
+    val phValue: Float,
+    val soilType: String,
+    val moisture: Float,
+    val temperature: Float,
+    val cropsList: List<String>
+)
 
 class ReportActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             MaterialTheme {
                 ReportScreen()
@@ -44,272 +84,347 @@ class ReportActivity : ComponentActivity() {
 
 @Composable
 fun ReportScreen() {
-
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var fertilizerRecommendation by remember { mutableStateOf("") }
-    val fusedLocationClient =
-        remember { LocationServices.getFusedLocationProviderClient(context) }
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    val permissionLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) {}
+    var isLoading by remember { mutableStateOf(false) }
+    var weatherSummary by remember { mutableStateOf<WeatherSnapshot?>(null) }
+    var soilRecord by remember { mutableStateOf<LatestSoilRecord?>(null) }
+    var recommendationBundle by remember { mutableStateOf<CropRecommendationBundle?>(null) }
+    var statusMessage by remember { mutableStateOf("Fetch the latest local weather and field guidance before generating the report.") }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(context, "Location permission is needed for weather guidance", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun loadInsights() {
+        val permissionGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!permissionGranted) {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            return
+        }
+
+        fetchLocation(context, fusedLocationClient) { lat, lng ->
+            scope.launch {
+                isLoading = true
+                statusMessage = "Collecting forecast and latest soil analysis..."
+                val latestSoilRecord = fetchLatestSoilRecord()
+                val weather = withContext(Dispatchers.IO) {
+                    WeatherApiHelper().fetchForecastSummary(
+                        latitude = lat,
+                        longitude = lng,
+                        apiKey = BuildConfig.OPEN_WEATHER_API_KEY
+                    )
+                }
+
+                soilRecord = latestSoilRecord
+                weatherSummary = weather
+                recommendationBundle = CropRecommendationEngine.build(
+                    predictedCrops = latestSoilRecord?.cropsList?.mapIndexed { index, crop ->
+                        crop to (1f - index * 0.12f).coerceAtLeast(0.5f)
+                    },
+                    ph = latestSoilRecord?.phValue,
+                    temperature = latestSoilRecord?.temperature,
+                    moisture = latestSoilRecord?.moisture,
+                    weather = weather
+                )
+                statusMessage = if (latestSoilRecord == null) {
+                    "Weather loaded, but no saved soil record was found."
+                } else {
+                    "Guidance updated using the latest field record and 48-hour forecast."
+                }
+                isLoading = false
+            }
+        }
+    }
+
+    fun generatePdf() {
+        val record = soilRecord
+        if (record == null) {
+            Toast.makeText(context, "Load soil data first so the report uses current inputs", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        scope.launch {
+            isLoading = true
+            try {
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                if (currentUser == null) {
+                    Toast.makeText(context, "User not logged in", Toast.LENGTH_LONG).show()
+                    isLoading = false
+                    return@launch
+                }
+
+                val userDoc = FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(currentUser.uid)
+                    .get()
+                    .await()
+
+                if (!userDoc.exists()) {
+                    Toast.makeText(context, "User document not found", Toast.LENGTH_LONG).show()
+                    isLoading = false
+                    return@launch
+                }
+
+                fetchLocation(context, fusedLocationClient) { lat, lng ->
+                    scope.launch {
+                        val reportData = ReportData(
+                            name = userDoc.getString("name") ?: "Unknown",
+                            village = userDoc.getString("village") ?: "Unknown",
+                            latitude = lat,
+                            longitude = lng,
+                            samples = List(5) { index ->
+                                SampleData(
+                                    sampleNo = index + 1,
+                                    n = record.predictedN,
+                                    p = record.predictedP,
+                                    k = record.predictedK,
+                                    ph = record.phValue,
+                                    soilType = record.soilType,
+                                    moisture = record.moisture,
+                                    temperature = record.temperature,
+                                    crops = record.cropsList.joinToString(", ")
+                                )
+                            },
+                            avgN = record.predictedN,
+                            avgP = record.predictedP,
+                            avgK = record.predictedK,
+                            avgPh = record.phValue,
+                            avgMoisture = record.moisture,
+                            avgTemp = record.temperature,
+                            predictedCrops = record.cropsList
+                        )
+
+                        val success = PdfReportGenerator(context).generateReport(reportData)
+                        Toast.makeText(
+                            context,
+                            if (success) "PDF generated successfully" else "PDF generation failed",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        isLoading = false
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, e.localizedMessage ?: "Failed to generate report", Toast.LENGTH_LONG).show()
+                isLoading = false
+            }
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFFF5F1E8), Color(0xFFE7F4EA), Color(0xFFD8EAD9))
+                    )
+                )
         ) {
-
-            Spacer(Modifier.height(40.dp))
-
-            Text("📄 KrishiSetu Report & Weather", fontSize = 22.sp)
-
-            Spacer(Modifier.height(40.dp))
-
-            // ================= PDF BUTTON =================
-            Button(
-                onClick = {
-
-                    val permissionGranted =
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                    if (!permissionGranted) {
-                        permissionLauncher.launch(
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        )
-                        return@Button
-                    }
-
-                    fetchLocation(context, fusedLocationClient) { lat, lng ->
-
-                        val currentUser = FirebaseAuth.getInstance().currentUser
-
-                        if (currentUser == null) {
-                            Toast.makeText(context, "User not logged in", Toast.LENGTH_LONG).show()
-                            return@fetchLocation
-                        }
-
-                        val uid = currentUser.uid
-                        val db = FirebaseFirestore.getInstance()
-                        db.collection("users")
-                            .document(uid)
-                            .get()
-                            .addOnSuccessListener { userDoc ->
-
-                                if (!userDoc.exists()) {
-                                    Toast.makeText(
-                                        context,
-                                        "User document not found",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                    return@addOnSuccessListener
-                                }
-
-                                val name = userDoc.getString("name") ?: "Unknown"
-                                val village = userDoc.getString("village") ?: "Unknown"
-
-                                // 🔥 FETCH LATEST SOIL RECORD
-                                db.collection("soil_records")
-                                    .orderBy("temperature")
-                                    .limitToLast(1)
-                                    .get()
-                                    .addOnSuccessListener { soilSnapshot ->
-
-                                        if (soilSnapshot.isEmpty) {
-                                            Toast.makeText(
-                                                context,
-                                                "No soil records found",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            return@addOnSuccessListener
-                                        }
-
-                                        val soilDoc =
-                                            soilSnapshot.documents[0]
-
-                                        val predictedN =
-                                            soilDoc.getDouble("predicted_N")?.toFloat() ?: 0f
-
-                                        val predictedP =
-                                            soilDoc.getDouble("predicted_P")?.toFloat() ?: 0f
-
-                                        val predictedK =
-                                            soilDoc.getDouble("predicted_K")?.toFloat() ?: 0f
-
-                                        val phValue =
-                                            soilDoc.getDouble("ph")?.toFloat() ?: 0f
-
-                                        val soilType =
-                                            soilDoc.getString("soil_type") ?: "Unknown"
-
-                                        val moisture =
-                                            soilDoc.getDouble("moisture")?.toFloat() ?: 0f
-
-                                        val temperature =
-                                            soilDoc.getDouble("temperature")?.toFloat() ?: 0f
-
-                                        val cropsList =
-                                            soilDoc.get("recommended_crops") as? List<*>
-                                                ?: emptyList<Any>()
-
-                                        val crops =
-                                            cropsList.joinToString(", ")
-
-                                        val sampleList =
-                                            List(5) { index ->
-                                                SampleData(
-                                                    sampleNo = index + 1,
-                                                    n = predictedN,
-                                                    p = predictedP,
-                                                    k = predictedK,
-                                                    ph = phValue,
-                                                    soilType = soilType,
-                                                    moisture = moisture,
-                                                    temperature = temperature,
-                                                    crops = crops
-                                                )
-                                            }
-
-                                        val reportData = ReportData(
-                                            name = name,
-                                            village = village,
-                                            latitude = lat,
-                                            longitude = lng,
-                                            samples = sampleList,
-                                            avgN = predictedN,
-                                            avgP = predictedP,
-                                            avgK = predictedK,
-                                            avgPh = phValue,
-                                            avgMoisture = moisture,
-                                            avgTemp = temperature,
-                                            predictedCrops = cropsList.map { it.toString() }
-                                        )
-
-                                        val success =
-                                            PdfReportGenerator(context)
-                                                .generateReport(reportData)
-
-                                        Toast.makeText(
-                                            context,
-                                            if (success)
-                                                "PDF Generated Successfully"
-                                            else
-                                                "PDF Generation Failed",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                            }
-                    }
-                },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp)
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Generate Soil Report PDF")
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            // ================= WEATHER BUTTON =================
-            Button(
-                onClick = {
-
-                    val permissionGranted =
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                    if (!permissionGranted) {
-                        permissionLauncher.launch(
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        )
-                        return@Button
-                    }
-
-                    fetchLocation(context, fusedLocationClient) { lat, lng ->
-
-                        scope.launch(Dispatchers.IO) {
-
-                            val helper = WeatherApiHelper()
-
-                            val weatherCondition =
-                                helper.willRainInNext48Hours(
-                                    lat,
-                                    lng,
-                                    BuildConfig.OPEN_WEATHER_API_KEY
-                                )
-
-                            withContext(Dispatchers.Main) {
-
-                                val recommendation = when (weatherCondition) {
-
-                                    "RAIN" ->
-                                        "🚨 Rain expected.\nAvoid applying Urea or Nitrogen fertilizers.\nDelay application."
-
-                                    "CLOUDY" ->
-                                        "☁ Cloudy weather.\nApply slow-release fertilizers."
-
-                                    "CLEAR" ->
-                                        "☀ No rain expected.\nSafe to apply NPK fertilizer."
-
-                                    else ->
-                                        "⚠ Unable to fetch weather.\nTry again."
-                                }
-
-                                fertilizerRecommendation = recommendation
-                            }
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp)
-            ) {
-                Text("Weather Based Fertilizer Prediction")
-            }
-
-            Spacer(Modifier.height(40.dp))
-            if (fertilizerRecommendation.isNotEmpty()) {
-
-                Spacer(modifier = Modifier.height(20.dp))
-
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF16361F))
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Column(modifier = Modifier.padding(22.dp)) {
+                        Text("Field Report Center", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Weather, fertilizer timing, crop fit, and PDF export in one place.",
+                            color = Color(0xFFDCECD7),
+                            fontSize = 15.sp
+                        )
+                        Spacer(Modifier.height(18.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = { loadInsights() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8BCF7A))
+                            ) {
+                                Text("Refresh Guidance", color = Color(0xFF16361F))
+                            }
+                            Button(
+                                onClick = { generatePdf() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2C98F))
+                            ) {
+                                Text("Generate PDF", color = Color(0xFF3B2B12))
+                            }
+                        }
+                    }
+                }
+
+                if (isLoading) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.72f))
                     ) {
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.height(26.dp).width(26.dp), strokeWidth = 3.dp)
+                            Spacer(Modifier.width(14.dp))
+                            Text(statusMessage, color = Color(0xFF28432F))
+                        }
+                    }
+                } else {
+                    Text(statusMessage, color = Color(0xFF35513C), fontSize = 14.sp)
+                }
 
-                        Text(
-                            text = "🌾 Fertilizer Recommendation",
-                            fontSize = 18.sp
-                        )
+                WeatherSummaryCard(weatherSummary)
+                SoilOverviewCard(soilRecord)
+                RecommendationSummaryCard(recommendationBundle)
+            }
+        }
+    }
+}
 
-                        Spacer(modifier = Modifier.height(10.dp))
+@Composable
+private fun WeatherSummaryCard(weather: WeatherSnapshot?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.82f))
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("48-Hour Weather Outlook", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF183B24))
+            if (weather == null) {
+                Text("No weather snapshot loaded yet.", color = Color(0xFF5D6F62))
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    WeatherMetric("Condition", weather.shortSummary)
+                    WeatherMetric("Temp", "${weather.temperatureC.roundToInt()}°C")
+                    WeatherMetric("Humidity", "${weather.humidityPercent.roundToInt()}%")
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    WeatherMetric("Rain", "${weather.totalRainMmNext48h.roundToInt()} mm")
+                    WeatherMetric("Wind", "${weather.peakWindSpeed.roundToInt()} m/s")
+                    WeatherMetric("Risk", if (weather.rainExpectedSoon) "Wet spell" else "Stable")
+                }
+            }
+        }
+    }
+}
 
-                        Text(
-                            text = fertilizerRecommendation,
-                            fontSize = 16.sp
-                        )
+@Composable
+private fun WeatherMetric(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.Start) {
+        Text(label, color = Color(0xFF6A7C70), fontSize = 12.sp)
+        Text(value, color = Color(0xFF183B24), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun SoilOverviewCard(record: LatestSoilRecord?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFEEF6ED))
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Latest Soil Snapshot", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF16361F))
+            if (record == null) {
+                Text("No soil record found yet.", color = Color(0xFF5C6D60))
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    WeatherMetric("pH", String.format("%.1f", record.phValue))
+                    WeatherMetric("Moisture", "${record.moisture.roundToInt()}%")
+                    WeatherMetric("Temp", "${record.temperature.roundToInt()}°C")
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    WeatherMetric("N", String.format("%.1f", record.predictedN))
+                    WeatherMetric("P", String.format("%.1f", record.predictedP))
+                    WeatherMetric("K", String.format("%.1f", record.predictedK))
+                }
+                Text("Soil type: ${record.soilType}", color = Color(0xFF36523D))
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecommendationSummaryCard(bundle: CropRecommendationBundle?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF16361F))
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Crop and Fertilizer Guidance", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            if (bundle == null) {
+                Text("Refresh guidance to generate crop recommendations.", color = Color(0xFFD7E7D9))
+            } else {
+                Text(bundle.headline, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                Text(bundle.weatherSummary, color = Color(0xFFD7E7D9))
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f))
+                ) {
+                    Text(
+                        bundle.fertilizerAdvice,
+                        modifier = Modifier.padding(14.dp),
+                        color = Color(0xFFF5F2E8)
+                    )
+                }
+                bundle.recommendations.take(3).forEach { item ->
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("${item.cropName} • ${item.score}%", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("${item.summary} • ML confidence ${item.confidence}%", color = Color(0xFFD7E7D9), fontSize = 13.sp)
+                            Text(item.reasons.joinToString(" "), color = Color(0xFFF3F7F1), fontSize = 13.sp)
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+private suspend fun fetchLatestSoilRecord(): LatestSoilRecord? {
+    return try {
+        val soilSnapshot = FirebaseFirestore.getInstance()
+            .collection("soil_records")
+            .orderBy("temperature")
+            .limitToLast(1)
+            .get()
+            .await()
+
+        if (soilSnapshot.isEmpty) return null
+
+        val soilDoc = soilSnapshot.documents[0]
+        LatestSoilRecord(
+            predictedN = soilDoc.getDouble("predicted_N")?.toFloat() ?: 0f,
+            predictedP = soilDoc.getDouble("predicted_P")?.toFloat() ?: 0f,
+            predictedK = soilDoc.getDouble("predicted_K")?.toFloat() ?: 0f,
+            phValue = soilDoc.getDouble("ph")?.toFloat() ?: 0f,
+            soilType = soilDoc.getString("soil_type") ?: "Unknown",
+            moisture = soilDoc.getDouble("moisture")?.toFloat() ?: 0f,
+            temperature = soilDoc.getDouble("temperature")?.toFloat() ?: 0f,
+            cropsList = (soilDoc.get("recommended_crops") as? List<*>)?.map { it.toString() } ?: emptyList()
+        )
+    } catch (_: Exception) {
+        null
     }
 }
 
@@ -319,14 +434,10 @@ private fun fetchLocation(
     fusedLocationClient: FusedLocationProviderClient,
     onLocationReady: (Double, Double) -> Unit
 ) {
-
-    val locationManager =
-        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-        context.startActivity(
-            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-        )
+        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
         return
     }
 
@@ -335,11 +446,7 @@ private fun fetchLocation(
             if (location != null) {
                 onLocationReady(location.latitude, location.longitude)
             } else {
-                Toast.makeText(
-                    context,
-                    "Location unavailable",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(context, "Location unavailable", Toast.LENGTH_LONG).show()
             }
         }
 }

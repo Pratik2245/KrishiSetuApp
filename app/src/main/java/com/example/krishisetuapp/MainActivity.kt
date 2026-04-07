@@ -16,6 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -68,6 +70,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -282,40 +285,85 @@ fun WelcomeScreen(navController: NavHostController) {
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF1FFF1)) {
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally) {
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF7F4EA)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFFF4E9D8), Color(0xFFE6F2E3), Color(0xFFD5E8D3))
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                shape = RoundedCornerShape(30.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF16361F))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "KrishiSetu",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Connect your field device, collect live soil values, and turn them into practical crop guidance.",
+                        color = Color(0xFFD8E8D8),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp
+                    )
+                    Spacer(Modifier.height(24.dp))
 
-            Text("🌾 Welcome to KrishiSetu",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32),
-                textAlign = TextAlign.Center
-            )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f))
+                    ) {
+                        Text(
+                            "Turn off mobile data, turn on Wi-Fi, and connect to 'KrishiSetu-Setup' before verification.",
+                            modifier = Modifier.padding(18.dp),
+                            color = Color(0xFFF4F6EE),
+                            lineHeight = 22.sp
+                        )
+                    }
 
-            Spacer(Modifier.height(16.dp))
-            Text("Turn OFF mobile data, turn ON Wi-Fi, and connect to 'KrishiSetu-Setup'.")
-            Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(20.dp))
+                    Button(
+                        onClick = { ctx.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2C98F))
+                    ) {
+                        Text("Open Wi-Fi Settings", color = Color(0xFF3A2D13), fontWeight = FontWeight.SemiBold)
+                    }
 
-            Button(onClick = { ctx.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
-                Text("Open Wi-Fi Settings", color = Color.White)
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            verifyConnection()
+                        },
+                        enabled = !checking,
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8BCF7A))
+                    ) {
+                        Text(if (checking) "Checking..." else "Verify Connection", color = Color(0xFF16361F), fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                    Text(status, color = Color(0xFFD5E4D6), textAlign = TextAlign.Center)
+                }
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            Button(onClick = {
-                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                verifyConnection()
-            }, enabled = !checking, modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))) {
-                Text(if (checking) "Checking..." else "Verify Connection", color = Color.White)
-            }
-
-            Spacer(Modifier.height(20.dp))
-            Text(status, color = Color.Gray)
         }
     }
 }
@@ -432,26 +480,66 @@ fun CredentialsScreen(navController: NavHostController) {
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize().background(Color(0xFFF9FFF9))) {
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally) {
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF7F4EA)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFFF4E9D8), Color(0xFFE9F3E5), Color(0xFFDDEBDA))
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.82f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Device Network Setup", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16361F))
+                    Text(
+                        "Enter the hotspot name and password that the KrishiSetu device should join.",
+                        color = Color(0xFF5F7163),
+                        textAlign = TextAlign.Center
+                    )
 
-            Text("Wi-Fi Hotspot Setup", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
-            Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = ssid,
+                        onValueChange = { ssid = it },
+                        label = { Text("SSID") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    OutlinedTextField(
+                        value = pwd,
+                        onValueChange = { pwd = it },
+                        label = { Text("Password") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp)
+                    )
 
-            OutlinedTextField(value = ssid, onValueChange = { ssid = it }, label = { Text("SSID") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(value = pwd, onValueChange = { pwd = it }, label = { Text("Password") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(4.dp))
+                    Button(
+                        onClick = { submit() },
+                        enabled = !submitting,
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D5B34))
+                    ) {
+                        Text(if (submitting) "Submitting..." else "Save & Connect", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
 
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { submit() }, enabled = !submitting, modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
-                Text(if (submitting) "Submitting..." else "Save & Connect", color = Color.White)
+                    Text(submitStatus, color = Color(0xFF5C6D60), textAlign = TextAlign.Center)
+                }
             }
-
-            Spacer(Modifier.height(12.dp))
-            Text(submitStatus, color = Color.Gray)
         }
     }
 }
@@ -627,6 +715,7 @@ fun DashboardScreen(
         }
     }
     var predictedCrops by remember { mutableStateOf<List<Pair<String, Float>>?>(null) } // (cropName, score)
+    var recommendationBundle by remember { mutableStateOf<CropRecommendationBundle?>(null) }
 
 
     // 5-sample system
@@ -646,6 +735,20 @@ fun DashboardScreen(
         )
     }
     val wsUrl = "ws://192.168.4.1:81/"
+
+    LaunchedEffect(predictedCrops, phValue, tempC, moisture) {
+        recommendationBundle = if (predictedCrops != null || phValue != null) {
+            CropRecommendationEngine.build(
+                predictedCrops = predictedCrops,
+                ph = phValue,
+                temperature = tempC.toFloatOrNull(),
+                moisture = moisture.toFloatOrNull(),
+                weather = null
+            )
+        } else {
+            null
+        }
+    }
 
     // Prepare models lazily
     // We create an object to hold interpreters & label lists — loaded once.
@@ -1233,255 +1336,386 @@ fun DashboardScreen(
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize().background(Color(0xFFF4FFF4))) {
-        Column(
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF7F4EA)) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState()), // <-- make dashboard scrollable
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Text("🌱 KrishiSetu Dashboard", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
-            Spacer(Modifier.height(10.dp))
-            Text("Status: $connectionStatus", color = Color.Gray)
-            Spacer(Modifier.height(20.dp))
-
-            Spacer(Modifier.height(20.dp))
-
-// ---------------- REPORT & WEATHER BUTTONS ----------------
-            Button(
-                onClick = {
-                    context.startActivity(Intent(context, ReportActivity::class.java))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(30.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6A4FB3)
-                )
-            ) {
-                Text("Generate Soil Report", color = Color.White, fontSize = 16.sp)
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    context.startActivity(
-                        Intent(context, ReportActivity::class.java)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFFF5EAD9), Color(0xFFE7F3E6), Color(0xFFD7E8D3))
                     )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(30.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6A4FB3)
                 )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Check Weather", color = Color.White, fontSize = 16.sp)
-            }
 
-            Spacer(Modifier.height(20.dp))
-            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), shape = RoundedCornerShape(12.dp)) {
-                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Soil Moisture", fontWeight = FontWeight.Bold)
-                    Text("$moisture %", fontSize = 36.sp, color = Color(0xFF1B5E20))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(30.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF16361F))
+                ) {
+                    Column(modifier = Modifier.padding(22.dp)) {
+                        Text("KrishiSetu Dashboard", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Live sensor values, soil interpretation, and crop recommendations in one field-ready view.",
+                            color = Color(0xFFD7E7D9),
+                            lineHeight = 22.sp
+                        )
+                        Spacer(Modifier.height(18.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = { context.startActivity(Intent(context, ReportActivity::class.java)) },
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8BCF7A))
+                            ) {
+                                Text("Weather & Report", color = Color(0xFF16361F), fontWeight = FontWeight.SemiBold)
+                            }
+                            OutlinedButton(
+                                onClick = onBack,
+                                shape = RoundedCornerShape(18.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2C98F))
+                            ) {
+                                Text("Back", color = Color(0xFFE2C98F))
+                            }
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Text("Device status: $connectionStatus", color = Color(0xFFD7E7D9))
+                    }
                 }
-            }
 
-            Spacer(Modifier.height(12.dp))
-            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), shape = RoundedCornerShape(12.dp)) {
-                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Soil Temperature", fontWeight = FontWeight.Bold)
-                    Text("$tempC °C", fontSize = 36.sp, color = Color(0xFF2E7D32))
+                Spacer(Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    DashboardStatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Soil Moisture",
+                        value = "$moisture %",
+                        accent = Color(0xFF1D6B4A)
+                    )
+                    DashboardStatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Soil Temperature",
+                        value = "$tempC °C",
+                        accent = Color(0xFF9B5D1A)
+                    )
                 }
-            }
 
-            Spacer(Modifier.height(20.dp))
-            Text("Last update: $lastUpdate", color = Color.Gray)
-            Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.72f))
+                ) {
+                    Text(
+                        "Last sensor update: $lastUpdate",
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                        color = Color(0xFF506255)
+                    )
+                }
+
+                Spacer(Modifier.height(18.dp))
 
             // -------- 5 Soil Sample System --------
 
 
 
-            Spacer(Modifier.height(20.dp))
-            // Soil upload & prediction area (new)
-            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F8F0)), shape = RoundedCornerShape(12.dp)) {
-                Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Soil Color (Upload soil photo)", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(8.dp))
-
-                    if (selectedSoilImage != null) {
-                        Image(
-                            painter = rememberAsyncImagePainter(selectedSoilImage),
-                            contentDescription = "Soil Image",
-                            modifier = Modifier
-                                .size(180.dp)
-                                .padding(4.dp)
+                Spacer(Modifier.height(20.dp))
+                Card(
+                    Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Soil Color Analysis", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF183B24))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Upload a soil photo to classify the soil appearance and dataset soil type.",
+                            color = Color(0xFF5B6E60),
+                            textAlign = TextAlign.Center
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
+
+                        if (selectedSoilImage != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(selectedSoilImage),
+                                contentDescription = "Soil Image",
+                                modifier = Modifier
+                                    .size(190.dp)
+                                    .border(2.dp, Color(0xFFD3E2D4), RoundedCornerShape(24.dp))
+                                    .padding(4.dp)
+                            )
+                            Spacer(Modifier.height(12.dp))
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(
+                                    onClick = { runSoilAnalyze(selectedSoilImage) },
+                                    enabled = !soilAnalyzing,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F6A3D)),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Text(if (soilAnalyzing) "Analyzing..." else "Analyze Soil", color = Color.White)
+                                }
+                                Button(
+                                    onClick = clearSoilImage,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C7C72)),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Text("Clear", color = Color.White)
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+                            soilPredColor?.let { predColor ->
+                                RecommendationDetailRow("Predicted color", predColor)
+                                soilColorConfidence?.let { conf ->
+                                    RecommendationDetailRow("Color confidence", "${(conf * 100).roundToInt()}%")
+                                }
+                            }
+                            soilPredType?.let { predType ->
+                                RecommendationDetailRow("Dataset soil type", predType)
+                                soilTypeConfidence?.let { conf ->
+                                    RecommendationDetailRow("Type confidence", "${(conf * 100).roundToInt()}%")
+                                }
+                            }
+                        } else {
+                            Button(
+                                onClick = onPickSoilImage,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8BCF7A)),
+                                shape = RoundedCornerShape(18.dp)
+                            ) {
+                                Text("Upload Soil Image", color = Color(0xFF16361F), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Card(
+                    Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9EE)),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("NPK and Crop Recommendation", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B3415))
+                        Spacer(Modifier.height(6.dp))
+                        Text("Inputs used: temperature, moisture, and pH", fontSize = 13.sp, color = Color(0xFF7A694D))
+                        Spacer(Modifier.height(14.dp))
+
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            RecommendationMetric("Temp", tempC)
+                            RecommendationMetric("Moisture", moisture)
+                            RecommendationMetric("pH", phValue?.let { "%.1f".format(it) } ?: "--")
+                        }
+
+                        Spacer(Modifier.height(12.dp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(onClick = { runSoilAnalyze(selectedSoilImage) }, enabled = !soilAnalyzing, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
-                                Text(if (soilAnalyzing) "Analyzing..." else "Analyze Soil", color = Color.White)
+                            Button(
+                                onClick = {
+                                    val t = tempC.toFloatOrNull() ?: 25f
+                                    val m = moisture.toFloatOrNull() ?: 50f
+                                    val p = phValue ?: 7f
+                                    predictNPKandCrops(t, m, p)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F6A3D)),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text("Generate Recommendation", color = Color.White)
                             }
-                            Button(onClick = clearSoilImage, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) {
+                            Button(
+                                onClick = {
+                                    predictedN = null; predictedP = null; predictedK = null; predictedCrops = null; recommendationBundle = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B7D70)),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
                                 Text("Clear", color = Color.White)
                             }
                         }
 
-                        Spacer(Modifier.height(8.dp))
-                        // show separated predictions
-                        soilPredColor?.let { predColor ->
-                            Text("Predicted Color (app): $predColor", fontSize = 16.sp, color = Color(0xFF1B5E20))
-                            soilColorConfidence?.let { conf ->
-                                Text("Color confidence: ${(conf * 100).roundToInt()}%", fontSize = 14.sp, color = Color.Gray)
-                            }
+                        Spacer(Modifier.height(14.dp))
+
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            RecommendationMetric("N", predictedN?.let { "%.2f".format(it) } ?: "--")
+                            RecommendationMetric("P", predictedP?.let { "%.2f".format(it) } ?: "--")
+                            RecommendationMetric("K", predictedK?.let { "%.2f".format(it) } ?: "--")
                         }
 
-                        Spacer(Modifier.height(6.dp))
-
-                        soilPredType?.let { predType ->
-                            Text("Predicted soil_type (dataset): $predType", fontSize = 16.sp, color = Color(0xFF1B5E20))
-                            soilTypeConfidence?.let { conf ->
-                                Text("Type confidence: ${(conf * 100).roundToInt()}%", fontSize = 14.sp, color = Color.Gray)
-                            }
-                        }
-
-                    } else {
-                        Button(onClick = onPickSoilImage, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))) {
-                            Text("Upload Soil Image", color = Color.White)
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            // ---------- NEW UI: NPK & Crop prediction (3 features only) ---------- //
-            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)), shape = RoundedCornerShape(12.dp)) {
-                Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Predict NPK & Best Crops", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Inputs used: Temperature, Moisture, pH", fontSize = 12.sp, color = Color.Gray)
-                    Spacer(Modifier.height(8.dp))
-
-                    // show current values (only 3 now)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column { Text("Temp:"); Text(tempC) }
-                        Column { Text("Moisture:"); Text(moisture) }
-                        Column { Text("pH:"); Text(phValue?.let { "%.1f".format(it) } ?: "--") }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(onClick = {
-                            // parse numeric values (defensive)
-                            val t = tempC.toFloatOrNull() ?: 25f
-                            val m = moisture.toFloatOrNull() ?: 50f
-                            val p = phValue ?: 7f
-                            predictNPKandCrops(t, m, p)
-                        }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
-                            Text("Predict NPK & Crops", color = Color.White)
-                        }
-                        Button(onClick = {
-                            predictedN = null; predictedP = null; predictedK = null; predictedCrops = null
-                        }, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) {
-                            Text("Clear", color = Color.White)
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    // results
-                    predictedN?.let { n ->
-                        Text("Predicted N: ${"%.2f".format(n)}", fontSize = 16.sp, color = Color(0xFF1B5E20))
-                    }
-                    predictedP?.let { p ->
-                        Text("Predicted P: ${"%.2f".format(p)}", fontSize = 16.sp, color = Color(0xFF1B5E20))
-                    }
-                    predictedK?.let { k ->
-                        Text("Predicted K: ${"%.2f".format(k)}", fontSize = 16.sp, color = Color(0xFF1B5E20))
-                    }
-
-                    Spacer(Modifier.height(6.dp))
-                    predictedCrops?.let { list ->
-                        if (list.isNotEmpty()) {
-                            Text("Top recommended crops:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                            Spacer(Modifier.height(6.dp))
-                            for ((name, score) in list) {
-                                Text("• $name (${(score * 100).roundToInt()}%)", fontSize = 14.sp, color = Color.Gray)
+                        if (recommendationBundle != null) {
+                            val bundle = recommendationBundle!!
+                            Spacer(Modifier.height(16.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF23432A))
+                            ) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(bundle.headline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text(bundle.fertilizerAdvice, color = Color(0xFFDDEBDE), fontSize = 13.sp)
+                                    bundle.recommendations.take(3).forEach { item ->
+                                        Card(
+                                            shape = RoundedCornerShape(16.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f))
+                                        ) {
+                                            Column(Modifier.padding(12.dp)) {
+                                                Text(
+                                                    "${item.cropName} • ${item.score}%",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                Text(
+                                                    item.reasons.joinToString(" "),
+                                                    color = Color(0xFFDDEBDE),
+                                                    fontSize = 12.sp,
+                                                    maxLines = 3,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } else {
-                            Text("Crop model not available or no predictions.", fontSize = 12.sp, color = Color.Gray)
+                            Text("Run a prediction to generate crop guidance.", fontSize = 13.sp, color = Color(0xFF7A694D))
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(20.dp))
 
-            // PH image area (existing behavior retained)
-            if (selectedImage != null) {
-                Image(painter = rememberAsyncImagePainter(selectedImage), contentDescription = "Selected Image", modifier = Modifier.size(220.dp))
-                Spacer(Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.82f))
+                ) {
+                    Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("pH Paper Analysis", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF183B24))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Upload the cropped pH strip image to estimate soil pH and refine crop selection.",
+                            color = Color(0xFF5B6E60),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(12.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { runAnalyze(selectedImage) }, enabled = !analyzing, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
-                        Text(if (analyzing) "Analyzing..." else "Analyze pH", color = Color.White)
+                        if (selectedImage != null) {
+                            Image(painter = rememberAsyncImagePainter(selectedImage), contentDescription = "Selected Image", modifier = Modifier.size(220.dp))
+                            Spacer(Modifier.height(12.dp))
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(onClick = { runAnalyze(selectedImage) }, enabled = !analyzing, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F6A3D)), shape = RoundedCornerShape(16.dp)) {
+                                    Text(if (analyzing) "Analyzing..." else "Analyze pH", color = Color.White)
+                                }
+                                Button(onClick = clearImage, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C7C72)), shape = RoundedCornerShape(16.dp)) {
+                                    Text("Clear", color = Color.White)
+                                }
+                            }
+
+                            analyzeError?.let { Text("Error analyzing image: $it", color = Color.Red) }
+
+                            phValue?.let { ph ->
+                                Spacer(Modifier.height(12.dp))
+                                Text("Estimated pH: ${"%.1f".format(ph)}", fontSize = 22.sp, color = Color(0xFF1B5E20))
+                                Text("Soil reaction: ${phMeaning ?: "--"}", fontSize = 16.sp, color = Color(0xFF586A5C))
+                                Spacer(Modifier.height(8.dp))
+
+                                Box(modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                                    .onGloballyPositioned { coords -> barSize = coords.size }
+                                    .background(Brush.horizontalGradient(listOf(Color(0xFFC94A44), Color(0xFFE4C95A), Color(0xFF62A95F), Color(0xFF5B96C9), Color(0xFF425D98))), RoundedCornerShape(20.dp))) {
+                                    val fraction = ((ph / 14f).coerceIn(0f, 1f))
+                                    val markerX = (barSize.width * fraction)
+                                    Box(
+                                        modifier = Modifier
+                                            .offset { IntOffset((markerX - 8f).toInt().coerceAtLeast(0), 0) }
+                                            .size(width = 16.dp, height = 24.dp)
+                                            .background(Color.Black.copy(alpha = 0.82f), RoundedCornerShape(20.dp))
+                                    )
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                Text("Acidic to neutral to basic", fontSize = 13.sp, color = Color(0xFF586A5C))
+                            }
+                        } else {
+                            Button(onClick = onPickImage, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8BCF7A)), shape = RoundedCornerShape(18.dp)) {
+                                Text("Upload pH Paper Image", color = Color(0xFF16361F), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                     }
-                    Button(onClick = clearImage, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) {
-                        Text("Clear", color = Color.White)
-                    }
                 }
 
-                analyzeError?.let { Text("Error analyzing image: $it", color = Color.Red) }
-
-                phValue?.let { ph ->
-                    Spacer(Modifier.height(12.dp))
-                    Text("Estimated pH: ${"%.1f".format(ph)}", fontSize = 22.sp, color = Color(0xFF1B5E20))
-                    Text("Soil Type: ${phMeaning ?: "—"}", fontSize = 18.sp, color = Color.Gray)
-                    Spacer(Modifier.height(8.dp))
-
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .onGloballyPositioned { coords -> barSize = coords.size }
-                        .background(Brush.horizontalGradient(listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue)))) {
-                        val fraction = ((ph / 14f).coerceIn(0f, 1f))
-                        val markerX = (barSize.width * fraction)
-                        Box(modifier = Modifier.offset { IntOffset((markerX - 8f).toInt().coerceAtLeast(0), 0) }.size(width = 16.dp, height = 24.dp).background(Color.Black.copy(alpha = 0.8f)))
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text("← Acidic      Neutral      Basic →", fontSize = 14.sp, color = Color.DarkGray)
+                Spacer(Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        context.startActivity(
+                            Intent(context, NpkHistoryActivity::class.java)
+                        )
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF355F3B))
+                ) {
+                    Text("View Local NPK History", color = Color.White)
                 }
-            } else {
-                Button(onClick = onPickImage, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))) {
-                    Text("Upload pH Paper Image", color = Color.White)
-                }
-            }
 
-            Spacer(Modifier.height(30.dp))
-            OutlinedButton(onClick = onBack) {
-                Text("⬅ Back", color = Color(0xFF2E7D32))
-            }
-
-            Spacer(Modifier.height(30.dp))
-            Button(
-                onClick = {
-                    context.startActivity(
-                        Intent(context, NpkHistoryActivity::class.java)
-                    )
-                }
-            ) {
-                Text("View Local NPK History")
+                Spacer(Modifier.height(24.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun DashboardStatCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    accent: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.78f))
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(accent, CircleShape)
+            )
+            Text(title, color = Color(0xFF617165), fontSize = 13.sp)
+            Text(value, color = Color(0xFF16361F), fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        }
+    }
+}
+
+@Composable
+private fun RecommendationMetric(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = Color(0xFF7A694D), fontSize = 12.sp)
+        Text(value, color = Color(0xFF4B3415), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun RecommendationDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = Color(0xFF5B6E60))
+        Text(value, color = Color(0xFF183B24), fontWeight = FontWeight.SemiBold)
     }
 }
