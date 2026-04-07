@@ -34,11 +34,16 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            btnLogin.isEnabled = false
+            btnLogin.text = "Signing in..."
+
             auth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener {
                     checkUserRole()
                 }
                 .addOnFailureListener { e ->
+                    btnLogin.isEnabled = true
+                    btnLogin.text = "Sign In"
                     Toast.makeText(this, "Login Failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }
         }
@@ -55,23 +60,36 @@ class LoginActivity : AppCompatActivity() {
             .addOnSuccessListener { doc ->
 
                 val role = doc.getString("role")
+                var navigated = false
 
                 when (role) {
                     "admin" -> {
                         startActivity(Intent(this, AdminDashboardActivity::class.java))
+                        navigated = true
                     }
                     "farmer" -> {
-                            val intent = Intent(this, MainActivity::class.java)
-                            startActivity(intent)
+                        val intent = Intent(this, MainActivity::class.java)
+                        startActivity(intent)
+                        navigated = true
                     }
                     else -> {
+                        resetLoginButton()
                         Toast.makeText(this, "Invalid role", Toast.LENGTH_SHORT).show()
                     }
                 }
-                finish()
+                if (navigated) {
+                    finish()
+                }
             }
             .addOnFailureListener {
+                resetLoginButton()
                 Toast.makeText(this, "Error fetching role", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun resetLoginButton() {
+        val btnLogin = findViewById<Button>(R.id.btnLogin)
+        btnLogin.isEnabled = true
+        btnLogin.text = "Sign In"
     }
 }

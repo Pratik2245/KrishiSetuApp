@@ -26,6 +26,7 @@ class RegisterActivity : AppCompatActivity() {
         val password = findViewById<EditText>(R.id.etPassword)
         val confirmPassword = findViewById<EditText>(R.id.etConfirmPassword)
         val registerBtn = findViewById<Button>(R.id.btnRegister)
+        val tvLogin = findViewById<TextView>(R.id.tvLogin)
 
         registerBtn.setOnClickListener {
 
@@ -55,6 +56,9 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            registerBtn.isEnabled = false
+            registerBtn.text = "Creating Account..."
+
             // 🔐 Create user in Firebase Auth
             auth.createUserWithEmailAndPassword(userEmail, userPass)
                 .addOnSuccessListener { result ->
@@ -80,12 +84,25 @@ class RegisterActivity : AppCompatActivity() {
                             finish()
                         }
                         .addOnFailureListener { e ->
+                            resetRegisterButton()
                             Toast.makeText(this, "Firestore Error: ${e.message}", Toast.LENGTH_LONG).show()
                         }
                 }
                 .addOnFailureListener { e ->
+                    resetRegisterButton()
                     Toast.makeText(this, "Auth Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
         }
+
+        tvLogin.setOnClickListener {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+        }
+    }
+
+    private fun resetRegisterButton() {
+        val registerBtn = findViewById<Button>(R.id.btnRegister)
+        registerBtn.isEnabled = true
+        registerBtn.text = "Create Account"
     }
 }

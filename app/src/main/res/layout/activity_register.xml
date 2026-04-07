@@ -1,106 +1,300 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F1FFF1">
+    android:background="@drawable/login_screen_background"
+    android:fillViewport="true"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginTop="60dp"
-        android:padding="24dp">
+        android:paddingStart="24dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="32dp">
 
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp"
+            android:background="@drawable/auth_top_chip_background">
 
-        <!-- Title -->
-        <TextView
-            android:text="Create Account 🌱"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="#2E7D32"
-            android:layout_marginBottom="20dp"
-            android:layout_gravity="center"
-            android:layout_height="wrap_content" android:layout_width="wrap_content"/>
+            <View
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:background="@drawable/login_badge_background" />
 
-        <!-- Card Container -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Farmer Registration"
+                    android:textColor="@color/login_forest"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create your smart farming account"
+                    android:textColor="@color/login_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/login_hero_background"
+            android:elevation="10dp"
             android:orientation="vertical"
-            android:padding="20dp"
-            android:background="@drawable/bg_card"
-            android:elevation="6dp">
+            android:padding="22dp">
 
-            <!-- Full Name -->
-            <EditText
-                android:id="@+id/etName"
-                android:hint="Full Name"
-                android:inputType="textPersonName"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Your Account"
+                android:textColor="@color/white"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"/>
+                android:layout_marginTop="8dp"
+                android:text="Register once to access soil analysis, weather-based crop guidance, and field reports from anywhere."
+                android:textColor="#D9EBDE"
+                android:textSize="15sp"
+                android:lineSpacingExtra="3dp" />
 
-            <!-- Phone -->
-            <EditText
-                android:id="@+id/etPhone"
-                android:hint="Phone Number"
-                android:inputType="phone"
+            <ImageView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"/>
-
-            <!-- Village -->
-            <EditText
-                android:id="@+id/etVillage"
-                android:hint="Village / Location"
-                android:inputType="text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"/>
-
-            <!-- Email -->
-            <EditText
-                android:id="@+id/etEmail"
-                android:hint="Email"
-                android:inputType="textEmailAddress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"/>
-
-            <!-- Password -->
-            <EditText
-                android:id="@+id/etPassword"
-                android:hint="Password"
-                android:inputType="textPassword"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"/>
-
-            <!-- Confirm Password -->
-            <EditText
-                android:id="@+id/etConfirmPassword"
-                android:hint="Confirm Password"
-                android:inputType="textPassword"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"/>
-
-
-
-            <!-- Register Button -->
-            <Button
-                android:id="@+id/btnRegister"
-                android:text="Register"
-                android:textColor="#FFFFFF"
-                android:background="@drawable/bg_button"
-                android:layout_marginTop="20dp"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"/>
-
+                android:layout_height="176dp"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/login_panel_background"
+                android:contentDescription="Abstract register illustration"
+                android:padding="18dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/auth_hero_illustration" />
         </LinearLayout>
 
-    </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/login_panel_background"
+            android:elevation="8dp"
+            android:orientation="vertical"
+            android:padding="22dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Set up your farmer profile"
+                android:textColor="@color/login_text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="We use these details to personalize reports and crop recommendations."
+                android:textColor="@color/login_text_secondary"
+                android:textSize="14sp"
+                android:lineSpacingExtra="2dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="Full Name"
+                android:textColor="@color/login_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/login_input_background"
+                android:backgroundTint="@null"
+                android:drawableStart="@android:drawable/ic_menu_edit"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:hint="Enter your full name"
+                android:inputType="textPersonName"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Phone Number"
+                android:textColor="@color/login_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etPhone"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/login_input_background"
+                android:backgroundTint="@null"
+                android:drawableStart="@android:drawable/ic_menu_call"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:hint="Enter phone number"
+                android:inputType="phone"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Village / Location"
+                android:textColor="@color/login_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etVillage"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/login_input_background"
+                android:backgroundTint="@null"
+                android:drawableStart="@android:drawable/ic_menu_mylocation"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:hint="Enter village or location"
+                android:inputType="text"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Email"
+                android:textColor="@color/login_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/login_input_background"
+                android:backgroundTint="@null"
+                android:drawableStart="@android:drawable/ic_dialog_email"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:hint="farmer@example.com"
+                android:inputType="textEmailAddress"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Password"
+                android:textColor="@color/login_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/login_input_background"
+                android:backgroundTint="@null"
+                android:drawableStart="@android:drawable/ic_lock_lock"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:hint="Create a password"
+                android:inputType="textPassword"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Confirm Password"
+                android:textColor="@color/login_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etConfirmPassword"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/login_input_background"
+                android:backgroundTint="@null"
+                android:drawableStart="@android:drawable/ic_lock_lock"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:hint="Re-enter your password"
+                android:inputType="textPassword"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
+
+            <Button
+                android:id="@+id/btnRegister"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/login_button_background"
+                android:text="Create Account"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvLogin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:text="Already have an account? Sign in"
+                android:textColor="@color/login_forest_light"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
 </ScrollView>

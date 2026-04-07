@@ -7,4 +7,16 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="login_forest">#153F2A</color>
+    <color name="login_forest_light">#2F6A4A</color>
+    <color name="login_mist">#F5F1E7</color>
+    <color name="login_sage">#D7E6D7</color>
+    <color name="login_card">#FFFDF9</color>
+    <color name="login_input_fill">#F7FAF4</color>
+    <color name="login_input_stroke">#D4E0D1</color>
+    <color name="login_button_start">#1C6B43</color>
+    <color name="login_button_end">#60A86B</color>
+    <color name="login_gold">#E0C58E</color>
+    <color name="login_text_primary">#173825</color>
+    <color name="login_text_secondary">#66796C</color>
 </resources>
